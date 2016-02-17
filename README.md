@@ -17,7 +17,7 @@ $ go run notibot.go [email] [password]
 
 ## Running through Docker ##
 
-Pull the image from the Docker Hub:
+Pull the image from the [Docker Hub](https://hub.docker.com/r/dhedegaard/notibot/):
 
 $ docker pull dhedegaard/notibot
 

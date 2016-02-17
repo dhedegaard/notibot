@@ -157,8 +157,8 @@ func main() {
 				sendMessage(sess, fmt.Sprintf(
 					"Uptime is: **%02d:%02d:%02d** (since **%s**) on **%s**",
 					int(duration.Hours()),
-					int(duration.Minutes()),
-					int(duration.Seconds()),
+					int(duration.Minutes())%60,
+					int(duration.Seconds())%60,
 					startTime.Format(time.Stamp),
 					hostname))
 			default:

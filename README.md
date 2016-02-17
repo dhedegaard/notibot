@@ -1,4 +1,10 @@
 # Notibot, a simple Discord bot
+
+[![Build Status](https://travis-ci.org/dhedegaard/notibot.svg?branch=master)](https://travis-ci.org/dhedegaard/notibot)
+
+It sends messages to a text channel whenever someone is leaving/joining the
+server or creating/changing/deleting channels.
+
 ## Running standalone ##
 
 Install dependency

@@ -236,12 +236,5 @@ func main() {
 	}
 
 	logInfo("Sleeping...")
-	var input string
-	fmt.Scanln(&input)
-
-	err = session.Close()
-	if err != nil {
-		panic(err)
-	}
-	logInfo("Closed session...")
+	select {}
 }

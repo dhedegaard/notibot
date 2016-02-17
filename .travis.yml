@@ -12,3 +12,6 @@ matrix:
 
 install:
  - go get github.com/bwmarrin/discordgo
+
+script:
+ - go build notibot.go

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -92,7 +93,7 @@ func sendMessage(sess *discordgo.Session, message string) {
 
 func main() {
 	if len(os.Args) != 3 {
-		panic("Please start the application with email and password as parameters.")
+		panic(errors.New("Please start the application with email and password as parameters."))
 	}
 	username := os.Args[1]
 	password := os.Args[2]
@@ -112,7 +113,7 @@ func main() {
 		panic(err)
 	}
 	if len(guilds) == 0 {
-		panic("No guilds on the user.")
+		panic(errors.New("No guilds on the user."))
 	}
 	firstGuild := guilds[0]
 	logInfo("Fetching guild state:", firstGuild.Name)

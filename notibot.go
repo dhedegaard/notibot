@@ -69,7 +69,11 @@ func fetchPrimaryTextChannel(sess *discordgo.Session) *discordgo.Channel {
 	if err != nil {
 		panic(err)
 	}
-	for _, channel := range guild.Channels {
+	channels, err := sess.GuildChannels(guild.ID)
+	if err != nil {
+		panic(err)
+	}
+	for _, channel := range channels {
 		channel, err = sess.Channel(channel.ID)
 		if err != nil {
 			panic(err)
@@ -92,14 +96,15 @@ func sendMessage(sess *discordgo.Session, message string) {
 }
 
 func main() {
-	if len(os.Args) != 3 {
-		panic(errors.New("Please start the application with email and password as parameters."))
+	argCount := len(os.Args)
+	if argCount < 2 || argCount > 3 {
+		panic(errors.New(
+			"Please start the application with <email> <password> " +
+				"or <app bot user token> as parameter(s)."))
 	}
-	username := os.Args[1]
-	password := os.Args[2]
 	startTime := time.Now()
 	logInfo("Logging in...")
-	session, err := discordgo.New(username, password)
+	session, err := discordgo.New(os.Args[1:])
 	if err != nil {
 		panic(err)
 	}
@@ -217,9 +222,10 @@ func main() {
 
 	session.OnPresenceUpdate = func(sess *discordgo.Session, evt *discordgo.PresenceUpdate) {
 		logDebug("PRESENSE UPDATE:", evt)
+		self := fetchUser(sess, "@me")
 		u := fetchUser(sess, evt.User.ID)
 		// Ignore self
-		if u.Email == username {
+		if u.ID == self.ID {
 			return
 		}
 		// Handle online/offline notifications

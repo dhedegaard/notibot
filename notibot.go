@@ -146,7 +146,7 @@ func main() {
 	logInfo("Added online/idle users:", len(usersOnline))
 
 	logInfo("Setting up event handlers...")
-	session.OnEvent = func(sess *discordgo.Session, evt *discordgo.Event) {
+	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.Event) {
 		if evt.Type == "MESSAGE_CREATE" {
 			message := messageType{}
 			err = json.Unmarshal(evt.RawData, &message)
@@ -184,33 +184,33 @@ func main() {
 		} else {
 			logDebug("EVENT:", evt)
 		}
-	}
+	})
 
-	session.OnUserUpdate = func(ses *discordgo.Session, evt *discordgo.User) {
+	session.AddHandler(func(ses *discordgo.Session, evt *discordgo.User) {
 		logDebug("USER UPDATE:", evt)
-	}
+	})
 
-	session.OnUserSettingsUpdate = func(sess *discordgo.Session, data map[string]interface{}) {
+	session.AddHandler(func(sess *discordgo.Session, data map[string]interface{}) {
 		logDebug("USER SETTINGS UPDATE:", data)
-	}
+	})
 
-	session.OnVoiceStateUpdate = func(sess *discordgo.Session, evt *discordgo.VoiceState) {
+	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.VoiceState) {
 		logDebug("VOICE STATE:", evt)
-	}
+	})
 
-	session.OnChannelCreate = func(sess *discordgo.Session, channel *discordgo.Channel) {
+	session.AddHandler(func(sess *discordgo.Session, channel *discordgo.Channel) {
 		logDebug("CHANNEL CREATE:", channel)
 		channelNames[channel.ID] = channel.Name
 		sendMessage(sess, fmt.Sprintf("Channel created **%s**", channel.Name))
-	}
+	})
 
-	session.OnChannelDelete = func(sess *discordgo.Session, channel *discordgo.Channel) {
+	session.AddHandler(func(sess *discordgo.Session, channel *discordgo.Channel) {
 		logDebug("CHANNEL DELETED:", channel.Name)
 		delete(channelNames, channel.ID)
 		sendMessage(sess, fmt.Sprintf("Channel deleted **%s**", channel.Name))
-	}
+	})
 
-	session.OnChannelUpdate = func(sess *discordgo.Session, channel *discordgo.Channel) {
+	session.AddHandler(func(sess *discordgo.Session, channel *discordgo.Channel) {
 		logDebug("CHANNEL UPDATE:", channel)
 		oldChannel, ok := channelNames[channel.ID]
 		if !ok || oldChannel != channel.Name {
@@ -218,9 +218,9 @@ func main() {
 				"Channel name changed from **%s** to **%s**", oldChannel, channel.Name))
 			channelNames[channel.ID] = channel.Name
 		}
-	}
+	})
 
-	session.OnPresenceUpdate = func(sess *discordgo.Session, evt *discordgo.PresenceUpdate) {
+	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.PresenceUpdate) {
 		logDebug("PRESENSE UPDATE:", evt)
 		self := fetchUser(sess, "@me")
 		u := fetchUser(sess, evt.User.ID)
@@ -240,7 +240,7 @@ func main() {
 				sendMessage(sess, fmt.Sprintf(`**%s** is now online`, u.Username))
 			}
 		}
-	}
+	})
 
 	logInfo("Sleeping...")
 	select {}

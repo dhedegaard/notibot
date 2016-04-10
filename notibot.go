@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -34,11 +33,10 @@ type messageType struct {
 
 var logger *log.Logger
 var usersOnline map[string]struct{}
-var channelNames map[string]string
+var startTime time.Time
 
 func init() {
 	usersOnline = make(map[string]struct{})
-	channelNames = make(map[string]string)
 	logger = log.New(os.Stderr, "  ", log.Ltime)
 }
 
@@ -102,9 +100,11 @@ func main() {
 			"Please start the application with <email> <password> " +
 				"or <app bot user token> as parameter(s)."))
 	}
-	startTime := time.Now()
+	startTime = time.Now()
 	logInfo("Logging in...")
 	session, err := discordgo.New(os.Args[1:])
+	session.ShouldReconnectOnError = true
+	setupHandlers(session)
 	if err != nil {
 		panic(err)
 	}
@@ -113,6 +113,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	self := fetchUser(session, "@me")
+	logInfo("This users username is:", self.Username)
 	guilds, err := session.UserGuilds()
 	if err != nil {
 		panic(err)
@@ -126,97 +128,38 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	logInfo("Fetching presenses...")
+	presences := firstGuild.Presences
+	logInfo("Fetching presenses...", len(presences))
 	// Setup initial state, ie online users and games played.
-	for _, presence := range firstGuild.Presences {
+	for _, presence := range presences {
 		u := fetchUser(session, presence.User.ID)
 		usersOnline[u.Username] = struct{}{}
 		logInfo("  User online:", u.Username)
 	}
-	// Add initial states for channel names.
-	logInfo("Fetching channels...")
-	for _, channel := range firstGuild.Channels {
-		channel, err = session.Channel(channel.ID)
-		if err != nil {
-			panic(err)
-		}
-		channelNames[channel.ID] = channel.Name
-		logInfo("  Channel added:", channel.Name, "- type:", channel.Type)
-	}
 	logInfo("Added online/idle users:", len(usersOnline))
 
+	logInfo("Sleeping...")
+	select {}
+}
+
+func setupHandlers(session *discordgo.Session) {
 	logInfo("Setting up event handlers...")
-	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.Event) {
-		if evt.Type == "MESSAGE_CREATE" {
-			message := messageType{}
-			err = json.Unmarshal(evt.RawData, &message)
+	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.MessageCreate) {
+		message := evt.Message
+		switch strings.ToLower(strings.TrimSpace(message.Content)) {
+		case "!uptime":
+			hostname, err := os.Hostname()
 			if err != nil {
 				panic(err)
 			}
-			switch strings.ToLower(strings.TrimSpace(message.Content)) {
-			case "!uptime":
-				hostname, err := os.Hostname()
-				if err != nil {
-					panic(err)
-				}
-				duration := time.Now().Sub(startTime)
-				sendMessage(sess, fmt.Sprintf(
-					"Uptime is: **%02d:%02d:%02d** (since **%s**) on **%s**",
-					int(duration.Hours()),
-					int(duration.Minutes())%60,
-					int(duration.Seconds())%60,
-					startTime.Format(time.Stamp),
-					hostname))
-			default:
-				// Handle mentions
-				for _, elem := range message.Mentions {
-					switch elem := elem.(type) {
-					case map[string]interface{}:
-						if str, ok := elem["username"].(string); ok && strings.ToLower(str) == "notibot" {
-							u := fetchUser(sess, message.Author.ID)
-							sendMessage(sess, fmt.Sprintf("Hi **%s** !!", u.Username))
-						}
-					default:
-						logDebug(fmt.Sprintf("type: %T", elem))
-					}
-				}
-			}
-		} else {
-			logDebug("EVENT:", evt)
-		}
-	})
-
-	session.AddHandler(func(ses *discordgo.Session, evt *discordgo.User) {
-		logDebug("USER UPDATE:", evt)
-	})
-
-	session.AddHandler(func(sess *discordgo.Session, data map[string]interface{}) {
-		logDebug("USER SETTINGS UPDATE:", data)
-	})
-
-	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.VoiceState) {
-		logDebug("VOICE STATE:", evt)
-	})
-
-	session.AddHandler(func(sess *discordgo.Session, channel *discordgo.Channel) {
-		logDebug("CHANNEL CREATE:", channel)
-		channelNames[channel.ID] = channel.Name
-		sendMessage(sess, fmt.Sprintf("Channel created **%s**", channel.Name))
-	})
-
-	session.AddHandler(func(sess *discordgo.Session, channel *discordgo.Channel) {
-		logDebug("CHANNEL DELETED:", channel.Name)
-		delete(channelNames, channel.ID)
-		sendMessage(sess, fmt.Sprintf("Channel deleted **%s**", channel.Name))
-	})
-
-	session.AddHandler(func(sess *discordgo.Session, channel *discordgo.Channel) {
-		logDebug("CHANNEL UPDATE:", channel)
-		oldChannel, ok := channelNames[channel.ID]
-		if !ok || oldChannel != channel.Name {
+			duration := time.Now().Sub(startTime)
 			sendMessage(sess, fmt.Sprintf(
-				"Channel name changed from **%s** to **%s**", oldChannel, channel.Name))
-			channelNames[channel.ID] = channel.Name
+				"Uptime is: **%02d:%02d:%02d** (since **%s**) on **%s**",
+				int(duration.Hours()),
+				int(duration.Minutes())%60,
+				int(duration.Seconds())%60,
+				startTime.Format(time.Stamp),
+				hostname))
 		}
 	})
 
@@ -241,7 +184,4 @@ func main() {
 			}
 		}
 	})
-
-	logInfo("Sleeping...")
-	select {}
 }

@@ -10,11 +10,15 @@ server or creating/changing/deleting channels.
 
 Install dependency
 
-`$ go get github.com/bwmarrin/discordgo`
+`$ go get -v .`
 
 Run the program
 
 `$ go run notibot.go [email] [password]`
+
+Or for a BOT-user
+
+`$ go run notibot.go [app bot user token]`
 
 ## Running through Docker ##
 
@@ -25,3 +29,10 @@ Pull the image from the [Docker Hub](https://hub.docker.com/r/dhedegaard/notibot
 Run the image
 
 `$ docker run -d --name notibot dhedegaard/notibot app [email] [password]`
+
+Or for a BOT-user
+
+`$ docker run -d --name notibot dhedegaard/notibot app [app bot user token]`
+
+You might also want to add `--restart always` as parameter for the container
+to automatically restart it if/when the process crashes.

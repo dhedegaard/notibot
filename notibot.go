@@ -11,26 +11,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type messageType struct {
-	Attachments []interface{} `json:"attachments"`
-	Author      struct {
-		Avatar        string `json:"avatar"`
-		Discriminator string `json:"discriminator"`
-		ID            string `json:"id"`
-		Username      string `json:"username"`
-	} `json:"author"`
-	ChannelID       string        `json:"channel_id"`
-	Content         string        `json:"content"`
-	EditedTimestamp interface{}   `json:"edited_timestamp"`
-	Embeds          []interface{} `json:"embeds"`
-	ID              string        `json:"id"`
-	MentionEveryone bool          `json:"mention_everyone"`
-	Mentions        []interface{} `json:"mentions"`
-	Nonce           string        `json:"nonce"`
-	Timestamp       string        `json:"timestamp"`
-	Tts             bool          `json:"tts"`
-}
-
 var logger *log.Logger
 var usersOnline map[string]struct{}
 var startTime time.Time

@@ -18,6 +18,7 @@ var startTime time.Time
 func init() {
 	usersOnline = make(map[string]struct{})
 	logger = log.New(os.Stderr, "  ", log.Ltime)
+	startTime = time.Now()
 }
 
 func logDebug(v ...interface{}) {
@@ -80,7 +81,6 @@ func main() {
 			"Please start the application with <email> <password> " +
 				"or <app bot user token> as parameter(s)."))
 	}
-	startTime = time.Now()
 	logInfo("Logging in...")
 	session, err := discordgo.New(os.Args[1:])
 	session.ShouldReconnectOnError = true
@@ -93,30 +93,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	self := fetchUser(session, "@me")
-	logInfo("This users username is:", self.Username)
-	guilds, err := session.UserGuilds()
-	if err != nil {
-		panic(err)
-	}
-	if len(guilds) == 0 {
-		panic(errors.New("No guilds on the user."))
-	}
-	firstGuild := guilds[0]
-	logInfo("Fetching guild state:", firstGuild.Name)
-	firstGuild, err = session.Guild(firstGuild.ID)
-	if err != nil {
-		panic(err)
-	}
-	presences := firstGuild.Presences
-	logInfo("Fetching presenses...", len(presences))
-	// Setup initial state, ie online users and games played.
-	for _, presence := range presences {
-		u := fetchUser(session, presence.User.ID)
-		usersOnline[u.Username] = struct{}{}
-		logInfo("  User online:", u.Username)
-	}
-	logInfo("Added online/idle users:", len(usersOnline))
 
 	logInfo("Sleeping...")
 	select {}
@@ -124,6 +100,7 @@ func main() {
 
 func setupHandlers(session *discordgo.Session) {
 	logInfo("Setting up event handlers...")
+
 	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.MessageCreate) {
 		message := evt.Message
 		switch strings.ToLower(strings.TrimSpace(message.Content)) {
@@ -144,7 +121,7 @@ func setupHandlers(session *discordgo.Session) {
 	})
 
 	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.PresenceUpdate) {
-		logDebug("PRESENSE UPDATE:", evt)
+		logDebug("PRESENSE UPDATE fired for user-ID:", evt.User.ID)
 		self := fetchUser(sess, "@me")
 		u := fetchUser(sess, evt.User.ID)
 		// Ignore self
@@ -153,15 +130,24 @@ func setupHandlers(session *discordgo.Session) {
 		}
 		// Handle online/offline notifications
 		if evt.Status == "offline" {
-			if _, ok := usersOnline[u.Username]; ok {
-				delete(usersOnline, u.Username)
+			if _, ok := usersOnline[u.ID]; ok {
+				delete(usersOnline, u.ID)
 				sendMessage(sess, fmt.Sprintf(`**%s** went offline`, u.Username))
 			}
 		} else {
-			if _, ok := usersOnline[u.Username]; !ok {
-				usersOnline[u.Username] = struct{}{}
+			if _, ok := usersOnline[u.ID]; !ok {
+				usersOnline[u.ID] = struct{}{}
 				sendMessage(sess, fmt.Sprintf(`**%s** is now online`, u.Username))
 			}
+		}
+	})
+
+	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.GuildCreate) {
+		logInfo("GUILD_CREATE event fired")
+		for _, presence := range evt.Presences {
+			user := presence.User
+			logInfo("Marked user-ID online:", user.ID)
+			usersOnline[user.ID] = struct{}{}
 		}
 	})
 }

@@ -31,32 +31,28 @@ func logInfo(v ...interface{}) {
 	logger.Println(v...)
 }
 
-func fetchUser(sess *discordgo.Session, userid string) *discordgo.User {
-	result, err := sess.User(userid)
+func panicOnErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func fetchUser(sess *discordgo.Session, userid string) *discordgo.User {
+	result, err := sess.User(userid)
+	panicOnErr(err)
 	return result
 }
 
 func fetchPrimaryTextChannel(sess *discordgo.Session) *discordgo.Channel {
 	guilds, err := sess.UserGuilds()
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 	guild, err := sess.Guild(guilds[0].ID)
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 	channels, err := sess.GuildChannels(guild.ID)
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 	for _, channel := range channels {
 		channel, err = sess.Channel(channel.ID)
-		if err != nil {
-			panic(err)
-		}
+		panicOnErr(err)
 		if channel.Type == "text" {
 			return channel
 		}
@@ -85,14 +81,10 @@ func main() {
 	session, err := discordgo.New(os.Args[1:])
 	session.ShouldReconnectOnError = true
 	setupHandlers(session)
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 	logInfo("Opening session...")
 	err = session.Open()
-	if err != nil {
-		panic(err)
-	}
+	panicOnErr(err)
 
 	logInfo("Sleeping...")
 	select {}
@@ -106,9 +98,7 @@ func setupHandlers(session *discordgo.Session) {
 		switch strings.ToLower(strings.TrimSpace(message.Content)) {
 		case "!uptime":
 			hostname, err := os.Hostname()
-			if err != nil {
-				panic(err)
-			}
+			panicOnErr(err)
 			duration := time.Now().Sub(startTime)
 			sendMessage(sess, fmt.Sprintf(
 				"Uptime is: **%02d:%02d:%02d** (since **%s**) on **%s**",

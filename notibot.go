@@ -37,58 +37,79 @@ func panicOnErr(err error) {
 	}
 }
 
-func fetchUser(sess *discordgo.Session, userid string) *discordgo.User {
-	result, err := sess.User(userid)
-	panicOnErr(err)
-	return result
-}
-
-func fetchPrimaryTextChannel(sess *discordgo.Session) (*discordgo.Channel, error) {
-	guilds, err := sess.UserGuilds()
-	if err != nil {
-		return nil, err
-	}
-	guild, err := sess.Guild(guilds[0].ID)
-	if err != nil {
-		return nil, err
-	}
-	channels, err := sess.GuildChannels(guild.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, channel := range channels {
-		channel, err = sess.Channel(channel.ID)
-		if err != nil {
-			return nil, err
-		}
-		if channel.Type == "text" {
-			return channel, nil
-		}
-	}
-	return nil, errors.New("No primary channel found")
-}
-
-func sendMessage(sess *discordgo.Session, message string) {
-	var channelid string
+/* Tries to call a method and checking if the method returned an error, if it
+did check to see if it's HTTP 502 from the Discord API and retry for
+`attempts` number of times. */
+func retryOnBadGateway(f func() error) {
+	var err error
 	for i := 0; i < 3; i++ {
-		channel, err := fetchPrimaryTextChannel(sess)
-		// If an error was returned, handle it.
+		err = f()
 		if err != nil {
-			/* If we get a 502 from the backend, sleep for 1 second and try
-			again, except when the error is caught on the third attempt. */
-			if i < 2 && strings.HasPrefix(err.Error(), "HTTP 502 Bad Gateway") {
+			if strings.HasPrefix(err.Error(), "HTTP 502") {
+				// If the error is Bad Gateway, try again after 1 sec.
 				time.Sleep(1 * time.Second)
 				continue
 			} else {
+				// Otherwise panic !
 				panicOnErr(err)
 			}
+		} else {
+			// In case of no error, return.
+			return
 		}
-		// Otherwise a channel was fetched, get the ID and break the loop.
-		channelid = channel.ID
-		break
 	}
+}
+
+func fetchUser(sess *discordgo.Session, userid string) *discordgo.User {
+	var result *discordgo.User
+	retryOnBadGateway(func() error {
+		var err error
+		result, err = sess.User(userid)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return result
+}
+
+func fetchPrimaryTextChannelID(sess *discordgo.Session) string {
+	var channelid string
+	retryOnBadGateway(func() error {
+		guilds, err := sess.UserGuilds()
+		if err != nil {
+			return err
+		}
+		guild, err := sess.Guild(guilds[0].ID)
+		if err != nil {
+			return err
+		}
+		channels, err := sess.GuildChannels(guild.ID)
+		if err != nil {
+			return err
+		}
+		for _, channel := range channels {
+			channel, err = sess.Channel(channel.ID)
+			if err != nil {
+				return err
+			}
+			if channel.Type == "text" {
+				channelid = channel.ID
+				return nil
+			}
+		}
+		return errors.New("No primary channel found")
+	})
+	return channelid
+}
+
+func sendMessage(sess *discordgo.Session, message string) {
+	channelid := fetchPrimaryTextChannelID(sess)
 	logInfo("SENDING MESSAGE:", message)
-	sess.ChannelMessageSend(channelid, message)
+	retryOnBadGateway(func() error {
+		_, err := sess.ChannelMessageSend(channelid, message)
+		return err
+	})
 }
 
 func main() {

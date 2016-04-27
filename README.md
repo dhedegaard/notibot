@@ -4,11 +4,11 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/dhedegaard/notibot.svg)](https://hub.docker.com/r/dhedegaard/notibot/)
 
 It sends messages to a text channel whenever someone is leaving/joining the
-server or creating/changing/deleting channels.
+server.
 
 ## Running standalone ##
 
-Install dependency
+Install dependencies
 
 `$ go get -v .`
 

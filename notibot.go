@@ -184,6 +184,7 @@ func setupHandlers(session *discordgo.Session) {
 	})
 
 	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.Disconnect) {
+		logInfo("DISCONNECT, trying to open session again.")
 		retryOnBadGateway(sess.Open)
 	})
 }

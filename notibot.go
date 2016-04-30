@@ -17,7 +17,7 @@ var startTime time.Time
 
 func init() {
 	usersOnline = make(map[string]struct{})
-	logger = log.New(os.Stderr, "  ", log.Ltime)
+	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
 	startTime = time.Now()
 }
 
@@ -181,5 +181,9 @@ func setupHandlers(session *discordgo.Session) {
 			logInfo("Marked user-ID online:", user.ID)
 			usersOnline[user.ID] = struct{}{}
 		}
+	})
+
+	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.Disconnect) {
+		retryOnBadGateway(sess.Open)
 	})
 }

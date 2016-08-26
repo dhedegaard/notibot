@@ -33,7 +33,7 @@ func init() {
 	flag.StringVar(&password, "p", "", "Account password")
 	flag.Parse()
 	if accountToken == "" && (username == "" || password == "") {
-		fmt.Fprintln(os.Stderr, "You must supply an account token as parameter with \"-t\".")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 }

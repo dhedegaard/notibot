@@ -14,11 +14,11 @@ Install dependencies
 
 Run the program
 
-`$ go run notibot.go [email] [password]`
+`$ go run notibot.go -u [email] -p [password]`
 
 Or for a BOT-user
 
-`$ go run notibot.go [app bot user token]`
+`$ go run notibot.go -t [app bot user token]`
 
 ## Running through Docker ##
 
@@ -28,11 +28,11 @@ Pull the image from the [Docker Hub](https://hub.docker.com/r/dhedegaard/notibot
 
 Run the image
 
-`$ docker run -d --name notibot dhedegaard/notibot app [email] [password]`
+`$ docker run -d --name notibot dhedegaard/notibot app -u [email] -p [password]`
 
 Or for a BOT-user
 
-`$ docker run -d --name notibot dhedegaard/notibot app [app bot user token]`
+`$ docker run -d --name notibot dhedegaard/notibot app -t [app bot user token]`
 
 You might also want to add `--restart always` as parameter for the container
 to automatically restart it if/when the process crashes.

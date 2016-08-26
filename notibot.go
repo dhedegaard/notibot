@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,10 +16,26 @@ var logger *log.Logger
 var usersOnline map[string]struct{}
 var startTime time.Time
 
+// Parameters from flag.
+var accountToken string
+var username string
+var password string
+
 func init() {
+	// Create initials.
 	usersOnline = make(map[string]struct{})
 	logger = log.New(os.Stderr, "  ", log.Ldate|log.Ltime)
 	startTime = time.Now()
+
+	// Parse command line arguments.
+	flag.StringVar(&accountToken, "t", "", "Bot account token")
+	flag.StringVar(&username, "u", "", "Account username")
+	flag.StringVar(&password, "p", "", "Account password")
+	flag.Parse()
+	if accountToken == "" && (username == "" || password == "") {
+		fmt.Fprintln(os.Stderr, "You must supply an account token as parameter with \"-t\".")
+		os.Exit(1)
+	}
 }
 
 func logDebug(v ...interface{}) {
@@ -113,23 +130,23 @@ func sendMessage(sess *discordgo.Session, message string) {
 }
 
 func main() {
-	argCount := len(os.Args)
-	if argCount < 2 || argCount > 3 {
-		panic(errors.New(
-			"Please start the application with <email> <password> " +
-				"or <app bot user token> as parameter(s)."))
-	}
 	logInfo("Logging in...")
-	session, err := discordgo.New(os.Args[1:])
-	session.ShouldReconnectOnError = true
+	var err error
+	var session *discordgo.Session
+	if accountToken == "" {
+		logInfo("Logging in with username and password...")
+		session, err = discordgo.New(username, password)
+	} else {
+		logInfo("Logging in with bot account token...")
+		session, err = discordgo.New(accountToken)
+	}
 	setupHandlers(session)
 	panicOnErr(err)
 	logInfo("Opening session...")
 	err = session.Open()
 	panicOnErr(err)
-
 	logInfo("Sleeping...")
-	select {}
+	<-make(chan struct{})
 }
 
 func setupHandlers(session *discordgo.Session) {
@@ -157,7 +174,7 @@ func setupHandlers(session *discordgo.Session) {
 		self := fetchUser(sess, "@me")
 		u := fetchUser(sess, evt.User.ID)
 		// Ignore self
-		if u.ID == self.ID {
+		if u.ID == self.ID || u.Bot {
 			return
 		}
 		// Handle online/offline notifications
@@ -181,13 +198,5 @@ func setupHandlers(session *discordgo.Session) {
 			logInfo("Marked user-ID online:", user.ID)
 			usersOnline[user.ID] = struct{}{}
 		}
-	})
-
-	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.Disconnect) {
-		logInfo("DISCONNECT event")
-	})
-
-	session.AddHandler(func(sess *discordgo.Session, evt *discordgo.Connect) {
-		logInfo("CONNECTION event")
 	})
 }

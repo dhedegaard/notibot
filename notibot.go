@@ -93,7 +93,7 @@ func fetchUser(sess *discordgo.Session, userid string) *discordgo.User {
 func fetchPrimaryTextChannelID(sess *discordgo.Session) string {
 	var channelid string
 	retryOnBadGateway(func() error {
-		guilds, err := sess.UserGuilds()
+		guilds, err := sess.UserGuilds(1, "", "")
 		if err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func fetchPrimaryTextChannelID(sess *discordgo.Session) string {
 			if err != nil {
 				return err
 			}
-			if channel.Type == "text" {
+			if channel.Type == discordgo.ChannelTypeGuildText {
 				channelid = channel.ID
 				return nil
 			}

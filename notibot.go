@@ -130,7 +130,7 @@ func main() {
 	var err error
 	var session *discordgo.Session
 	logInfo("Logging in with bot account token...")
-	session, err = discordgo.New(accountToken)
+	session, err = discordgo.New("Bot " + accountToken)
 	setupHandlers(session)
 	panicOnErr(err)
 	logInfo("Opening session...")

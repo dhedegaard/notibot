@@ -12,11 +12,7 @@ Install dependencies
 
 `$ go get -v .`
 
-Run the program
-
-`$ go run notibot.go -u [email] -p [password]`
-
-Or for a BOT-user
+Run the program with a BOT user token
 
 `$ go run notibot.go -t [app bot user token]`
 

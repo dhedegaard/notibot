@@ -18,8 +18,6 @@ var startTime time.Time
 
 // Parameters from flag.
 var accountToken string
-var username string
-var password string
 
 func init() {
 	// Create initials.
@@ -29,10 +27,8 @@ func init() {
 
 	// Parse command line arguments.
 	flag.StringVar(&accountToken, "t", "", "Bot account token")
-	flag.StringVar(&username, "u", "", "Account username")
-	flag.StringVar(&password, "p", "", "Account password")
 	flag.Parse()
-	if accountToken == "" && (username == "" || password == "") {
+	if accountToken == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -133,13 +129,8 @@ func main() {
 	logInfo("Logging in...")
 	var err error
 	var session *discordgo.Session
-	if accountToken == "" {
-		logInfo("Logging in with username and password...")
-		session, err = discordgo.New(username, password)
-	} else {
-		logInfo("Logging in with bot account token...")
-		session, err = discordgo.New(accountToken)
-	}
+	logInfo("Logging in with bot account token...")
+	session, err = discordgo.New(accountToken)
 	setupHandlers(session)
 	panicOnErr(err)
 	logInfo("Opening session...")
